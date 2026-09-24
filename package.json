@@ -1,0 +1,12 @@
+{
+  "name": "forma-el-numero-multijugador",
+  "version": "1.0.0",
+  "description": "Juego matemático multijugador en tiempo real",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

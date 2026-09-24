@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>¡Forma el número! — Multijugador</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #1e1e2e 0%, #181825 100%);
+    color: #cdd6f4;
+    min-height: 100vh;
+    padding: 15px;
+  }
+  .contenedor { max-width: 1000px; margin: 0 auto; }
+  h1 { text-align: center; color: #f9e2af; font-size: 26px; margin-bottom: 12px; }
+
+  /* ============ LOGIN ============ */
+  #login {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; background: #1e1e2e; padding: 30px;
+    border-radius: 14px; max-width: 400px; margin: 40px auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  #login input {
+    padding: 12px; border-radius: 8px; border: 2px solid #45475a;
+    background: #313244; color: #cdd6f4; font-size: 16px; width: 100%;
+    text-align: center;
+  }
+  #login button {
+    padding: 12px 30px; background: #89b4fa; color: #1e1e2e;
+    border: none; border-radius: 8px; font-size: 16px;
+    font-weight: bold; cursor: pointer;
+  }
+  #login button:hover { filter: brightness(1.15); }
+
+  /* ============ INFO BAR ============ */
+  .info-bar {
+    display: flex; justify-content: space-around; flex-wrap: wrap;
+    background: #313244; border-radius: 10px; padding: 10px;
+    margin-bottom: 12px; gap: 8px;
+  }
+  .info-item { text-align: center; min-width: 80px; }
+  .info-item .label { font-size: 11px; color: #a6adc8; text-transform: uppercase; }
+  .info-item .valor { font-size: 20px; font-weight: bold; color: #f9e2af; }
+  .info-item .valor.tiempo { color: #f38ba8; }
+
+  /* ============ DADOS ============ */
+  .dados-zona {
+    display: flex; justify-content: center; gap: 14px;
+    margin: 15px 0; flex-wrap: wrap;
+  }
+  .dado-contenedor { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .dado {
+    width: 75px; height: 75px; background: #f9e2af; color: #1e1e2e;
+    border-radius: 12px; display: flex; justify-content: center;
+    align-items: center; font-size: 34px; font-weight: bold;
+    box-shadow: 0 4px 0 #b8a06a, 0 6px 12px rgba(0,0,0,0.4);
+  }
+  .dado.objetivo { background: #f38ba8; box-shadow: 0 4px 0 #b85a72, 0 6px 12px rgba(0,0,0,0.4); }
+  .dado.girando { animation: girar 0.12s linear infinite; }
+  @keyframes girar {
+    0% { transform: rotate(0) scale(1); }
+    50% { transform: rotate(180deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+  .btn-usar {
+    background: #45475a; color: #cdd6f4; border: none;
+    border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+  }
+  .btn-usar:hover:not(:disabled) { background: #585b70; }
+  .btn-usar:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ============ PANTALLA ============ */
+  .pantalla {
+    background: #313244; border: 3px solid #45475a;
+    border-radius: 10px; padding: 12px 16px; font-size: 22px;
+    font-weight: bold; color: #f9e2af; text-align: right;
+    min-height: 50px; word-wrap: break-word; margin: 10px 0 4px;
+  }
+  .resultado-parcial { text-align: right; color: #a6e3a1; font-size: 14px; min-height: 18px; margin-bottom: 10px; }
+
+  /* ============ TECLADO ============ */
+  .teclado {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 6px; margin-bottom: 12px;
+  }
+  .teclado button {
+    padding: 12px 0; font-size: 16px; font-weight: bold;
+    border: none; border-radius: 8px; cursor: pointer; color: #1e1e2e;
+  }
+  .teclado button:hover { filter: brightness(1.15); }
+  .btn-num { background: #313244; color: #cdd6f4; }
+  .btn-op { background: #89b4fa; }
+  .btn-func { background: #f38ba8; }
+  .btn-par { background: #cba6f7; }
+  .btn-igual { background: #a6e3a1; }
+
+  /* ============ ACCIONES ============ */
+  .acciones { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+  .btn-accion {
+    padding: 12px 24px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: bold; cursor: pointer; color: #1e1e2e;
+  }
+  .btn-accion:hover:not(:disabled) { filter: brightness(1.15); }
+  .btn-accion:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-comprobar { background: #a6e3a1; }
+  .btn-comodin { background: #f9e2af; }
+  .btn-reglas { background: #cba6f7; }
+
+  /* ============ MARCADOR ============ */
+  .marcador {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center; margin: 12px 0;
+    max-height: 180px; overflow-y: auto;
+    background: #181825; border-radius: 10px; padding: 10px;
+  }
+  .jugador-card {
+    background: #313244; border: 2px solid #45475a;
+    border-radius: 8px; padding: 6px 12px; text-align: center;
+    min-width: 100px; font-size: 13px;
+  }
+  .jugador-card.yo { border-color: #f9e2af; background: #45475a; }
+  .jugador-card.ganador { border-color: #a6e3a1; box-shadow: 0 0 10px #a6e3a1; }
+  .jugador-card .pts { font-size: 18px; font-weight: bold; color: #a6e3a1; }
+
+  .mensaje {
+    text-align: center; margin-top: 14px; font-size: 15px;
+    min-height: 22px; color: #f9e2af; font-weight: 500;
+  }
+
+  /* ============ MODAL ============ */
+  .modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); justify-content: center;
+    align-items: center; z-index: 100; padding: 20px;
+  }
+  .modal.visible { display: flex; }
+  .modal-contenido {
+    background: #1e1e2e; border-radius: 14px; padding: 24px;
+    max-width: 620px; max-height: 80vh; overflow-y: auto;
+    color: #cdd6f4; line-height: 1.6; border: 2px solid #45475a;
+  }
+  .modal-contenido h2 { color: #f9e2af; margin-bottom: 10px; }
+  .modal-contenido ul { padding-left: 20px; margin-bottom: 10px; }
+  .modal-contenido .cerrar {
+    margin-top: 14px; background: #f38ba8; color: #1e1e2e;
+    border: none; padding: 8px 18px; border-radius: 8px;
+    font-weight: bold; cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    .dado { width: 55px; height: 55px; font-size: 24px; }
+    .teclado button { padding: 10px 0; font-size: 14px; }
+    h1 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="contenedor">
+
+  <!-- ============ LOGIN ============ -->
+  <div id="login">
+    <h1>🎲 ¡Forma el número! 🎲</h1>
+    <p style="color:#a6adc8;text-align:center;">Ingresa tu nombre para unirte a la partida</p>
+    <input type="text" id="nombreInput" placeholder="Tu nombre" maxlength="20">
+    <button onclick="unirse()">▶ Unirse a la partida</button>
+    <p style="color:#a6adc8;font-size:12px;text-align:center;">
+      Hasta 30 jugadores en tiempo real
+    </p>
+  </div>
+
+  <!-- ============ JUEGO ============ -->
+  <div id="juego" style="display:none;">
+    <h1>🎲 ¡Forma el número! 🎲</h1>
+
+    <div class="info-bar">
+      <div class="info-item"><div class="label">Ronda</div><div class="valor" id="infoRonda">1 / 5</div></div>
+      <div class="info-item"><div class="label">Jugadores</div><div class="valor" id="infoJugadores">1</div></div>
+      <div class="info-item"><div class="label">Tiempo</div><div class="valor tiempo" id="infoTiempo">5:00</div></div>
+      <div class="info-item"><div class="label">Objetivo</div><div class="valor" id="infoObjetivo">?</div></div>
+    </div>
+
+    <div class="marcador" id="marcador"></div>
+
+    <div class="dados-zona" id="dadosZona"></div>
+
+    <div class="pantalla" id="pantalla">0</div>
+    <div class="resultado-parcial" id="resultadoParcial"></div>
+
+    <div class="teclado">
+      <button class="btn-func" onclick="accion('C')">C</button>
+      <button class="btn-func" onclick="accion('←')">←</button>
+      <button class="btn-par"  onclick="agregar('(')">(</button>
+      <button class="btn-par"  onclick="agregar(')')">)</button>
+      <button class="btn-par"  onclick="agregar('√(')">√</button>
+
+      <button class="btn-num"  onclick="agregar('7')">7</button>
+      <button class="btn-num"  onclick="agregar('8')">8</button>
+      <button class="btn-num"  onclick="agregar('9')">9</button>
+      <button class="btn-op"   onclick="agregar('/')">÷</button>
+      <button class="btn-op"   onclick="agregar('^')">^</button>
+
+      <button class="btn-num"  onclick="agregar('4')">4</button>
+      <button class="btn-num"  onclick="agregar('5')">5</button>
+      <button class="btn-num"  onclick="agregar('6')">6</button>
+      <button class="btn-op"   onclick="agregar('*')">×</button>
+      <button class="btn-op"   onclick="agregar('.')">.</button>
+
+      <button class="btn-num"  onclick="agregar('1')">1</button>
+      <button class="btn-num"  onclick="agregar('2')">2</button>
+      <button class="btn-num"  onclick="agregar('3')">3</button>
+      <button class="btn-op"   onclick="agregar('-')">−</button>
+      <button class="btn-op"   onclick="agregar('+')">+</button>
+
+      <button class="btn-num"  onclick="agregar('0')">0</button>
+      <button class="btn-igual" onclick="calcular()" style="grid-column: span 4;">=</button>
+    </div>
+
+    <div class="acciones">
+      <button class="btn-accion btn-comprobar" id="btnComprobar" onclick="enviarRespuesta()">✅ Enviar respuesta</button>
+      <button class="btn-accion btn-comodin"  onclick="infoComodin(1)">🃏 Comodín 1: a⁰</button>
+      <button class="btn-accion btn-comodin"  onclick="infoComodin(2)">🃏 Comodín 2: (a+b)²</button>
+      <button class="btn-accion btn-reglas"   onclick="mostrarReglas()">📖 Reglas</button>
+    </div>
+
+    <div class="mensaje" id="mensaje"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL REGLAS ============ -->
+<div class="modal" id="modalReglas">
+  <div class="modal-contenido">
+    <h2>📖 Reglas de "¡Forma el número!"</h2>
+    <p><strong>🎯 Objetivo:</strong> Obtener exactamente el número del quinto dado usando los primeros 4.</p>
+    <ul>
+      <li>Se lanzan 4 dados → esos son tus números.</li>
+      <li>Se lanza un 5º dado → ese es el número objetivo.</li>
+      <li>Usa los 4 números, cada uno UNA sola vez.</li>
+      <li>Operaciones: +, −, ×, ÷, potencias (^) y raíces (√).</li>
+      <li>Respeta la jerarquía de operaciones.</li>
+      <li>5 rondas por partida. 5 minutos por ronda.</li>
+      <li><strong>El primero en enviar la respuesta correcta gana el punto.</strong></li>
+    </ul>
+    <p><strong>🃏 Comodines (1 vez por ronda cada uno):</strong></p>
+    <ul>
+      <li>Comodín 1: <code>a^0</code> → elige UNO de los 4 números, se convierte en 1.</li>
+      <li>Comodín 2: <code>(a+b)^2</code> → eleva al cuadrado una suma entre dos dados.</li>
+    </ul>
+    <p><strong>🧮 Cómo escribir:</strong> 3+4 · 5-2 · 3*4 · 8/2 · 3^2 · √(9) o √9 · (3+4)*2</p>
+    <p><strong>❌ Prohibido:</strong> inventar números, usar un dado dos veces, usar el 5º dado, usar comodines más de una vez, concatenar dígitos.</p>
+    <button class="cerrar" onclick="cerrarReglas()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ESTADO DEL CLIENTE
+   ============================================================ */
+const estado = {
+  ws: null,
+  id: null,
+  nombre: "",
+  jugadores: [],
+  ronda: 1,
+  maxRondas: 5,
+  dados: [0,0,0,0],
+  objetivo: 0,
+  dadosUsados: [false,false,false,false],
+  expresion: "",
+  estadoRonda: 'esperando',
+  tiempoRestante: 300
+};
+
+/* ============================================================
+   CONEXIÓN WEBSOCKET
+   ============================================================ */
+function unirse() {
+  const nombre = document.getElementById('nombreInput').value.trim() || 'Anónimo';
+  estado.nombre = nombre;
+
+  const protocolo = location.protocol === 'https:' ? 'wss://' : 'ws://';
+  estado.ws = new WebSocket(protocolo + location.host);
+
+  estado.ws.onopen = () => {
+    estado.ws.send(JSON.stringify({ tipo: 'unirse', nombre }));
+  };
+
+  estado.ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    manejarMensaje(msg);
+  };
+
+  estado.ws.onclose = () => {
+    mensaje('❌ Conexión cerrada con el servidor.');
+  };
+
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('juego').style.display = 'block';
+  crearDadosUI();
+}
+
+/* ============================================================
+   MANEJO DE MENSAJES DEL SERVIDOR
+   ============================================================ */
+function manejarMensaje(msg) {
+  switch (msg.tipo) {
+    case 'bienvenida':
+      estado.id = msg.id;
+      break;
+
+    case 'estado':
+      estado.ronda = msg.ronda;
+      estado.maxRondas = msg.maxRondas;
+      estado.jugadores = msg.jugadores;
+      estado.dados = msg.dados;
+      estado.objetivo = msg.objetivo;
+      estado.tiempoRestante = msg.tiempoRestante;
+      estado.estadoRonda = msg.estado;
+      actualizarTodo();
+      if (msg.estado === 'jugando') {
+        animarDados(msg.dados, msg.objetivo);
+        document.getElementById('btnComprobar').disabled = false;
+      }
+      break;
+
+    case 'jugadores_actualizados':
+      estado.jugadores = msg.jugadores;
+      actualizarMarcador();
+      actualizarInfo();
+      break;
+
+    case 'ronda_iniciada':
+      estado.ronda = msg.ronda;
+      estado.dados = msg.dados;
+      estado.objetivo = msg.objetivo;
+      estado.tiempoRestante = msg.tiempoRestante;
+      estado.estadoRonda = 'jugando';
+      estado.dadosUsados = [false,false,false,false];
+      estado.expresion = "";
+      actualizarPantalla();
+      document.getElementById('resultadoParcial').textContent = "";
+      document.getElementById('btnComprobar').disabled = false;
+      for (let i = 0; i < 4; i++) {
+        const btn = document.getElementById(`btnUsar${i}`);
+        if (btn) btn.disabled = false;
+      }
+      animarDados(msg.dados, msg.objetivo);
+      mensaje("¡Dados lanzados! Sé el más rápido.");
+      break;
+
+    case 'tick':
+      estado.tiempoRestante = msg.tiempoRestante;
+      actualizarTiempo();
+      break;
+
+    case 'ronda_finalizada':
+      estado.estadoRonda = 'resuelta';
+      estado.jugadores = msg.jugadores;
+      actualizarMarcador();
+      document.getElementById('btnComprobar').disabled = true;
+      marcarGanador(msg.ganadorId);
+      if (msg.ganadorId === estado.id) {
+        mensaje("🏆 ¡Ganaste la ronda! Punto para ti.");
+      } else if (msg.ganadorId) {
+        const ganador = msg.jugadores.find(j => j.id === msg.ganadorId);
+        mensaje(`⏱️ ${ganador ? ganador.nombre : 'Alguien'} respondió primero. Objetivo: ${msg.objetivo}.`);
+      } else {
+        mensaje(`⏰ Tiempo agotado. El objetivo era ${msg.objetivo}.`);
+      }
+      break;
+
+    case 'esperando_ronda':
+      estado.ronda = msg.ronda;
+      estado.maxRondas = msg.maxRondas;
+      estado.estadoRonda = 'esperando';
+      document.getElementById('btnComprobar').disabled = true;
+      actualizarInfo();
+      mensaje(`Preparados para la ronda ${msg.ronda}...`);
+      resetearDadosUI();
+      break;
+
+    case 'juego_terminado':
+      estado.jugadores = msg.jugadores;
+      actualizarMarcador();
+      mostrarGanadorFinal(msg.jugadores);
+      break;
+
+    case 'respuesta_incorrecta':
+      mensaje("❌ " + msg.msg);
+      break;
+
+    case 'respuesta_rechazada':
+      mensaje("⚠️ " + msg.msg);
+      break;
+
+    case 'error':
+      alert(msg.msg);
+      break;
+  }
+}
+
+/* ============================================================
+   DADOS EN LA UI
+   ============================================================ */
+function crearDadosUI() {
+  const zona = document.getElementById('dadosZona');
+  zona.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const cont = document.createElement('div');
+    cont.className = 'dado-contenedor';
+    cont.innerHTML = `
+      <div class="dado" id="dado${i}">?</div>
+      <button class="btn-usar" id="btnUsar${i}" onclick="insertarDado(${i})">Usar</button>
+    `;
+    zona.appendChild(cont);
+  }
+  const contObj = document.createElement('div');
+  contObj.className = 'dado-contenedor';
+  contObj.innerHTML = `<div class="dado objetivo" id="dadoObjetivo">?</div>`;
+  zona.appendChild(contObj);
+}
+
+function resetearDadosUI() {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById(`dado${i}`);
+    if (el) el.textContent = "?";
+    const btn = document.getElementById(`btnUsar${i}`);
+    if (btn) { btn.disabled = true; }
+  }
+  const obj = document.getElementById('dadoObjetivo');
+  if (obj) obj.textContent = "?";
+  document.getElementById('infoObjetivo').textContent = "?";
+}
+
+function animarDados(dados, objetivo) {
+  const dadosEls = [];
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById(`dado${i}`);
+    el.classList.add('girando');
+    dadosEls.push(el);
+    document.getElementById(`btnUsar${i}`).disabled = true;
+  }
+  const objEl = document.getElementById('dadoObjetivo');
+  objEl.classList.add('girando');
+
+  const intervalo = setInterval(() => {
+    for (let i = 0; i < 4; i++) {
+      dadosEls[i].textContent = Math.floor(Math.random()*6)+1;
+    }
+    objEl.textContent = Math.floor(Math.random()*6)+1;
+  }, 100);
+
+  setTimeout(() => {
+    clearInterval(intervalo);
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById(`dado${i}`);
+      el.classList.remove('girando');
+      el.textContent = dados[i];
+      document.getElementById(`btnUsar${i}`).disabled = false;
+    }
+    objEl.classList.remove('girando');
+    objEl.textContent = objetivo;
+    document.getElementById('infoObjetivo').textContent = objetivo;
+  }, 1000);
+}
+
+/* ============================================================
+   INSERTAR DADO EN LA EXPRESIÓN
+   ============================================================ */
+function insertarDado(idx) {
+  if (estado.estadoRonda !== 'jugando') return;
+  if (estado.dadosUsados[idx]) return;
+  agregar(String(estado.dados[idx]));
+  estado.dadosUsados[idx] = true;
+  document.getElementById(`btnUsar${idx}`).disabled = true;
+}
+
+/* ============================================================
+   CALCULADORA
+   ============================================================ */
+function agregar(txt) {
+  estado.expresion += txt;
+  actualizarPantalla();
+}
+
+function accion(cmd) {
+  if (cmd === 'C') {
+    estado.expresion = "";
+    document.getElementById('resultadoParcial').textContent = "";
+  } else if (cmd === '←') {
+    if (estado.expresion.endsWith("√(")) {
+      estado.expresion = estado.expresion.slice(0, -2);
+    } else {
+      estado.expresion = estado.expresion.slice(0, -1);
+    }
+  }
+  actualizarPantalla();
+}
+
+function actualizarPantalla() {
+  document.getElementById('pantalla').textContent = estado.expresion || "0";
+}
+
+function expresionEvaluable(expr) {
+  let e = expr.replace(/\^/g, "**");
+  e = e.replace(/√(\d+)/g, "Math.sqrt($1)");
+  e = e.replace(/√/g, "Math.sqrt");
+  return e;
+}
+
+function calcular() {
+  if (!estado.expresion.trim()) return;
+  try {
+    const resultado = eval(expresionEvaluable(estado.expresion));
+    document.getElementById('resultadoParcial').textContent = "= " + resultado;
+  } catch (e) {
+    document.getElementById('resultadoParcial').textContent = "Error: expresión no válida";
+  }
+}
+
+/* ============================================================
+   ENVIAR RESPUESTA AL SERVIDOR
+   ============================================================ */
+function enviarRespuesta() {
+  if (estado.estadoRonda !== 'jugando') {
+    mensaje("⚠️ La ronda no está activa.");
+    return;
+  }
+  const expr = estado.expresion.trim();
+  if (!expr) {
+    mensaje("⚠️ Arma una expresión antes de enviar.");
+    return;
+  }
+  estado.ws.send(JSON.stringify({ tipo: 'respuesta', expresion: expr }));
+  mensaje("📤 Respuesta enviada. Esperando validación...");
+}
+
+/* ============================================================
+   ACTUALIZACIONES DE UI
+   ============================================================ */
+function actualizarTodo() {
+  actualizarInfo();
+  actualizarMarcador();
+  actualizarTiempo();
+  resetearDadosUI();
+  if (estado.estadoRonda === 'jugando') {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`dado${i}`).textContent = estado.dados[i];
+    }
+    document.getElementById('dadoObjetivo').textContent = estado.objetivo;
+    document.getElementById('infoObjetivo').textContent = estado.objetivo;
+  }
+}
+
+function actualizarInfo() {
+  document.getElementById('infoRonda').textContent = `${estado.ronda} / ${estado.maxRondas}`;
+  document.getElementById('infoJugadores').textContent = estado.jugadores.length;
+}
+
+function actualizarTiempo() {
+  const min = Math.floor(estado.tiempoRestante / 60);
+  const seg = estado.tiempoRestante % 60;
+  document.getElementById('infoTiempo').textContent = `${min}:${seg.toString().padStart(2,'0')}`;
+}
+
+function actualizarMarcador() {
+  const cont = document.getElementById('marcador');
+  cont.innerHTML = "";
+  estado.jugadores.forEach(j => {
+    const card = document.createElement('div');
+    card.className = 'jugador-card' + (j.id === estado.id ? ' yo' : '');
+    card.id = `jugador-${j.id}`;
+    card.innerHTML = `<div>${j.nombre}</div><div class="pts">${j.puntos}</div>`;
+    cont.appendChild(card);
+  });
+}
+
+function marcarGanador(id) {
+  if (!id) return;
+  const card = document.getElementById(`jugador-${id}`);
+  if (card) card.classList.add('ganador');
+}
+
+function mensaje(txt) {
+  document.getElementById('mensaje').textContent = txt;
+}
+
+/* ============================================================
+   COMODINES / REGLAS
+   ============================================================ */
+function infoComodin(n) {
+  if (n === 1) {
+    alert("🃏 Comodín 1 — Elevar a 0\n\nElige UNO de los 4 números de los dados y elévalo a 0.\nEse número pasa a valer 1. Ejemplo: 3^0 = 1.\nSolo puedes usarlo una vez por ronda.");
+  } else {
+    alert("🃏 Comodín 2 — Elevar a 2\n\nEleva al cuadrado una SUMA entre dos números de los dados.\nEjemplo: (3+4)^2 = 49.\nSolo puedes usarlo una vez por ronda.");
+  }
+}
+
+function mostrarReglas() {
+  document.getElementById('modalReglas').classList.add('visible');
+}
+function cerrarReglas() {
+  document.getElementById('modalReglas').classList.remove('visible');
+}
+
+function mostrarGanadorFinal(jugadores) {
+  const top = jugadores[0];
+  setTimeout(() => {
+    alert(`🏆 ¡Juego terminado!\n\n🥇 Ganador: ${top.nombre} con ${top.puntos} puntos\n\n${jugadores.map((j,i) => `${i+1}. ${j.nombre}: ${j.puntos} pts`).join('\n')}`);
+  }, 500);
+}
+</script>
+</body>
+</html>
